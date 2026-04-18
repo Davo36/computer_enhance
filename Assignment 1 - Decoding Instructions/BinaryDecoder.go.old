@@ -1,0 +1,66 @@
+package main
+
+// This works for a single instruction.
+// Next make it work for multiple instructions
+
+import (
+	"encoding/binary"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+)
+
+type Instruction struct {
+	Byte1 byte
+	Byte2 byte
+}
+
+var registerTable = [][]string{
+	{"al", "ax"},
+	{"cl", "cx"},
+	{"dl", "dx"},
+	{"bl", "bx"},
+	{"ah", "sp"},
+	{"ch", "bp"},
+	{"dh", "si"},
+	{"bh", "di"},
+}
+
+func main() {
+
+	// Input file.  This is a binary file
+	file, err := os.Open("listing_0037_single_register_mov")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	// Read the binary data into the struct
+	var instruction Instruction
+	err = binary.Read(file, binary.LittleEndian, &instruction)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Get string representations of the bytes to make accessing the bits nice and easy.
+	byte1Str := fmt.Sprintf("%08b", instruction.Byte1)
+	byte2Str := fmt.Sprintf("%08b", instruction.Byte2)
+	fmt.Println(byte1Str)
+	fmt.Println(byte2Str)
+
+	// Create the output file
+	outFile, err := os.Create("Davids_single_register_mov.asm")
+	defer outFile.Close()
+	outFile.WriteString("bits 16\n\n")
+	instructionStr := "mov "
+	w, _ := strconv.ParseInt(byte1Str[7:], 2, 64)
+	fromRegister, _ := strconv.ParseInt(byte2Str[5:], 2, 64)
+	fromRegisterLabel := registerTable[fromRegister][w]
+	toRegister, _ := strconv.ParseInt(byte2Str[2:5], 2, 64)
+	toRegisterLabel := registerTable[toRegister][w]
+	instructionStr += fromRegisterLabel + ", " + toRegisterLabel + "\n"
+	outFile.WriteString(instructionStr)
+	fmt.Println(instructionStr)
+
+}
